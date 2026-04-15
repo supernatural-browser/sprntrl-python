@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sprntrl"
+version = "0.1.0"
+description = "Sprntrl Python SDK — stealth browser-as-a-service client."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Sprntrl" }]
+keywords = ["browser", "automation", "playwright", "cdp", "stealth", "scraping"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+playwright = ["playwright>=1.40"]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio>=0.23",
+    "respx>=0.20",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+
+[project.urls]
+Homepage = "https://sprntrl.ai"
+Repository = "https://github.com/sprntrl/sprntrl-python"
+Documentation = "https://docs.sprntrl.ai"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sprntrl"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = false
+warn_unused_ignores = true
