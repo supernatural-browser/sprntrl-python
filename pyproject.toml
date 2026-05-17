@@ -5,11 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "sprntrl"
 version = "0.1.0"
-description = "Sprntrl Python SDK — stealth browser-as-a-service client."
+description = "Supernatural Python SDK — stealth browser-as-a-service client."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "Sprntrl" }]
+authors = [{ name = "Supernatural" }]
 keywords = ["browser", "automation", "playwright", "cdp", "stealth", "scraping"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -40,11 +40,19 @@ dev = [
 
 [project.urls]
 Homepage = "https://supernatural.sh"
-Repository = "https://github.com/sprntrl/sprntrl-python"
-Documentation = "https://docs.supernatural.sh"
+Repository = "https://github.com/supernatural-browser/sprntrl-python"
+Documentation = "https://app.supernatural.sh/docs"
+"Bug Tracker" = "https://github.com/supernatural-browser/sprntrl-python/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sprntrl"]
+# sprntrl/py.typed (PEP 561) is under the package dir, so hatchling ships it
+# in the wheel automatically alongside the .py sources.
+
+[tool.hatch.build.targets.sdist]
+# Default sdist is VCS-driven; list explicitly so LICENSE + py.typed ship even
+# before they're committed and the sdist stays reproducible.
+include = ["sprntrl", "README.md", "LICENSE", "pyproject.toml"]
 
 [tool.ruff]
 line-length = 100

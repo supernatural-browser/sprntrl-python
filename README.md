@@ -1,6 +1,6 @@
-# Sprntrl Python SDK
+# Supernatural Python SDK
 
-Official Python client for the [Sprntrl](https://supernatural.sh) stealth browser-as-a-service API.
+Official Python client for the [Supernatural](https://supernatural.sh) stealth browser-as-a-service API.
 
 ## Installation
 
