@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from urllib.parse import urlparse, urlunparse
 
 from .._errors import SprntrlError
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -19,7 +20,7 @@ def _cdp_url_for(client: "SyncClient | AsyncClient", session: Mapping[str, Any])
     parsed = urlparse(client.base_url)
     scheme = "wss" if parsed.scheme == "https" else "ws"
     return urlunparse((
-        scheme, parsed.netloc, f"/api/v1/sessions/{session_id}/cdp", "", "", "",
+        scheme, parsed.netloc, f"/api/v1/sessions/{seg(session_id)}/cdp", "", "", "",
     ))
 
 

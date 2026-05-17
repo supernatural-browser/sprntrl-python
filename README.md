@@ -1,6 +1,6 @@
 # Sprntrl Python SDK
 
-Official Python client for the [Sprntrl](https://sprntrl.ai) stealth browser-as-a-service API.
+Official Python client for the [Sprntrl](https://supernatural.sh) stealth browser-as-a-service API.
 
 ## Installation
 
@@ -61,7 +61,7 @@ Or to hand the raw WebSocket URL to any CDP client (chrome-remote-interface-pyth
 
 ```python
 url = client.sessions.cdp_url(session_id)
-# url = "wss://api.sprntrl.ai/api/v1/sessions/<id>/cdp"
+# url = "wss://api.supernatural.sh/api/v1/sessions/<id>/cdp"
 ```
 
 ## Configuration
@@ -69,12 +69,12 @@ url = client.sessions.cdp_url(session_id)
 | Env var            | Default                    |
 |--------------------|----------------------------|
 | `SPRNTRL_API_KEY`  | —                          |
-| `SPRNTRL_BASE_URL` | `https://api.sprntrl.ai`   |
+| `SPRNTRL_BASE_URL` | `https://api.supernatural.sh`   |
 
 Or override per client:
 
 ```python
-client = Sprntrl(api_key="sk_...", base_url="https://api.sprntrl.ai", timeout=30, max_retries=2)
+client = Sprntrl(api_key="sk_...", base_url="https://api.supernatural.sh", timeout=30, max_retries=2)
 ```
 
 ## Resources

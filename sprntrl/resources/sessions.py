@@ -8,6 +8,7 @@ from urllib.parse import urlparse, urlunparse
 
 from .._types import OS, ProxyConfig, Session, PaginatedSessions
 from .._errors import SprntrlError
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -51,6 +52,7 @@ def _build_create_body(
     location: str,
     *,
     persistent: bool = False,
+    captcha_solver: bool = False,
     session_name: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -59,6 +61,8 @@ def _build_create_body(
         "location": location,
         "persistent": persistent,
     }
+    if captcha_solver:
+        body["captcha_solver"] = True
     if session_name is not None:
         body["session_name"] = session_name
     body.update(_normalize_proxy(proxy))
@@ -77,12 +81,14 @@ class Sessions:
         location: str,
         *,
         persistent: bool = False,
+        captcha_solver: bool = False,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
         body = _build_create_body(
             os, location,
             persistent=persistent,
+            captcha_solver=captcha_solver,
             session_name=session_name,
             proxy=proxy,
         )
@@ -109,24 +115,30 @@ class Sessions:
         )
         return resp.get("sessions", [])
 
+    def list_persistent(self) -> list[Session]:
+        """Persistent sessions (created with persistent=True), whether
+        currently running or stopped-but-resumable."""
+        resp = self._client._request("GET", "/api/v1/sessions/persistent")
+        return resp.get("sessions", [])
+
     def list_locations(self) -> list[str]:
         resp = self._client._request("GET", "/api/v1/sessions/locations")
         return resp.get("locations", [])
 
     def get(self, session_id: str) -> Session:
-        return self._client._request("GET", f"/api/v1/sessions/{session_id}")
+        return self._client._request("GET", f"/api/v1/sessions/{seg(session_id)}")
 
     def stop(self, session_id: str) -> None:
-        self._client._request("DELETE", f"/api/v1/sessions/{session_id}")
+        self._client._request("DELETE", f"/api/v1/sessions/{seg(session_id)}")
 
     def resume(self, session_id: str) -> Session:
         return self._client._request(
-            "POST", f"/api/v1/sessions/{session_id}/resume"
+            "POST", f"/api/v1/sessions/{seg(session_id)}/resume"
         )
 
     def delete_persistent(self, session_id: str) -> None:
         self._client._request(
-            "DELETE", f"/api/v1/sessions/{session_id}/persist"
+            "DELETE", f"/api/v1/sessions/{seg(session_id)}/persist"
         )
 
     def wait_until_ready(
@@ -182,7 +194,7 @@ class Sessions:
         parsed = urlparse(self._client.base_url)
         scheme = "wss" if parsed.scheme == "https" else "ws"
         return urlunparse((
-            scheme, parsed.netloc, f"/api/v1/sessions/{session_id}/cdp", "", "", "",
+            scheme, parsed.netloc, f"/api/v1/sessions/{seg(session_id)}/cdp", "", "", "",
         ))
 
     @contextlib.contextmanager
@@ -249,12 +261,14 @@ class AsyncSessions:
         location: str,
         *,
         persistent: bool = False,
+        captcha_solver: bool = False,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
         body = _build_create_body(
             os, location,
             persistent=persistent,
+            captcha_solver=captcha_solver,
             session_name=session_name,
             proxy=proxy,
         )
@@ -281,24 +295,30 @@ class AsyncSessions:
         )
         return resp.get("sessions", [])
 
+    async def list_persistent(self) -> list[Session]:
+        """Persistent sessions (created with persistent=True), whether
+        currently running or stopped-but-resumable."""
+        resp = await self._client._request("GET", "/api/v1/sessions/persistent")
+        return resp.get("sessions", [])
+
     async def list_locations(self) -> list[str]:
         resp = await self._client._request("GET", "/api/v1/sessions/locations")
         return resp.get("locations", [])
 
     async def get(self, session_id: str) -> Session:
-        return await self._client._request("GET", f"/api/v1/sessions/{session_id}")
+        return await self._client._request("GET", f"/api/v1/sessions/{seg(session_id)}")
 
     async def stop(self, session_id: str) -> None:
-        await self._client._request("DELETE", f"/api/v1/sessions/{session_id}")
+        await self._client._request("DELETE", f"/api/v1/sessions/{seg(session_id)}")
 
     async def resume(self, session_id: str) -> Session:
         return await self._client._request(
-            "POST", f"/api/v1/sessions/{session_id}/resume"
+            "POST", f"/api/v1/sessions/{seg(session_id)}/resume"
         )
 
     async def delete_persistent(self, session_id: str) -> None:
         await self._client._request(
-            "DELETE", f"/api/v1/sessions/{session_id}/persist"
+            "DELETE", f"/api/v1/sessions/{seg(session_id)}/persist"
         )
 
     async def wait_until_ready(
@@ -348,7 +368,7 @@ class AsyncSessions:
         parsed = urlparse(self._client.base_url)
         scheme = "wss" if parsed.scheme == "https" else "ws"
         return urlunparse((
-            scheme, parsed.netloc, f"/api/v1/sessions/{session_id}/cdp", "", "", "",
+            scheme, parsed.netloc, f"/api/v1/sessions/{seg(session_id)}/cdp", "", "", "",
         ))
 
     @contextlib.asynccontextmanager

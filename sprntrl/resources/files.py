@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, BinaryIO, Union
 
 from .._types import FileInfo
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -25,13 +26,13 @@ class SessionFiles:
 
     def list(self, session_id: str) -> list[FileInfo]:
         resp = self._client._request(
-            "GET", f"/api/v1/sessions/{session_id}/files"
+            "GET", f"/api/v1/sessions/{seg(session_id)}/files"
         )
         return _parse_list(resp)
 
     def download(self, session_id: str, filename: str) -> bytes:
         resp = self._client._request(
-            "GET", f"/api/v1/sessions/{session_id}/files/{filename}"
+            "GET", f"/api/v1/sessions/{seg(session_id)}/files/{seg(filename)}"
         )
         if isinstance(resp, (bytes, bytearray)):
             return bytes(resp)
@@ -50,7 +51,7 @@ class SessionFiles:
     ) -> None:
         files = {"file": (filename, content, content_type)}
         self._client._request(
-            "POST", f"/api/v1/sessions/{session_id}/files", files=files
+            "POST", f"/api/v1/sessions/{seg(session_id)}/files", files=files
         )
 
 
@@ -60,13 +61,13 @@ class AsyncSessionFiles:
 
     async def list(self, session_id: str) -> list[FileInfo]:
         resp = await self._client._request(
-            "GET", f"/api/v1/sessions/{session_id}/files"
+            "GET", f"/api/v1/sessions/{seg(session_id)}/files"
         )
         return _parse_list(resp)
 
     async def download(self, session_id: str, filename: str) -> bytes:
         resp = await self._client._request(
-            "GET", f"/api/v1/sessions/{session_id}/files/{filename}"
+            "GET", f"/api/v1/sessions/{seg(session_id)}/files/{seg(filename)}"
         )
         if isinstance(resp, (bytes, bytearray)):
             return bytes(resp)
@@ -84,5 +85,5 @@ class AsyncSessionFiles:
     ) -> None:
         files = {"file": (filename, content, content_type)}
         await self._client._request(
-            "POST", f"/api/v1/sessions/{session_id}/files", files=files
+            "POST", f"/api/v1/sessions/{seg(session_id)}/files", files=files
         )

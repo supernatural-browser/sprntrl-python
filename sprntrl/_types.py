@@ -16,6 +16,18 @@ class ProxyConfig(TypedDict, total=False):
     password: str
 
 
+class ProxySummary(TypedDict, total=False):
+    """Display-friendly view of a session's proxy. Present only for BYO
+    (bring-your-own) proxies — pool proxies are shared infra and the API
+    deliberately hides their host/port. The password is never returned."""
+
+    protocol: str
+    host: str
+    port: int
+    username: str
+    address: str  # convenience form: protocol://host:port
+
+
 class Session(TypedDict, total=False):
     id: str
     user_id: str
@@ -24,22 +36,20 @@ class Session(TypedDict, total=False):
     chrome_port: int | None
     status: SessionStatus
     persistent: bool
+    captcha_solver: bool
     session_name: str | None
     data_dir_path: str | None
     data_dir_size: int
     storage_status: str
     os: OS
     location: str
-    proxy_protocol: str | None
-    proxy_host: str | None
-    proxy_port: int | None
-    proxy_username: str | None
     started_at: str | None
     stopped_at: str | None
     created_at: str
     cdp_url: str
     uptime_seconds: int
     sidecar_port: int
+    proxy: ProxySummary  # present only for BYO-proxy sessions
 
 
 class PaginatedSessions(TypedDict):
@@ -98,14 +108,15 @@ class Usage(TypedDict, total=False):
     month: str
     plan: str
     usage_percentage: float
+    allow_hours_overage: bool
     profile_count: int
     max_profiles: int
-    bandwidth_bytes: int
-    bandwidth_limit_gb: int
-    bandwidth_overage_rate_cents: int
-    allow_bandwidth_overage: bool
-    bandwidth_overage_bytes: int
-    bandwidth_overage_amount_cents: int
+    bandwidth_rate_cents: int  # pool-proxy bandwidth, cents per GB
+    hours_overage_rate_cents: int  # cents per hour over plan minutes
+    bandwidth_bytes: int  # pool-proxy bytes consumed this period
+    bandwidth_charge_amount_cents: int  # accrued bandwidth overage, cents
+    hours_overage_minutes: int  # minutes used beyond plan allowance
+    hours_overage_amount_cents: int  # accrued hours-overage charge, cents
 
 
 class UsageMonth(TypedDict):
@@ -115,16 +126,33 @@ class UsageMonth(TypedDict):
     overage_minutes: int
 
 
+AccountStatus = Literal["pending_verification", "pending_payment", "active"]
+
+
 class User(TypedDict, total=False):
     id: str
     email: str
-    name: str
+    name: str | None
     plan: str
     role: str
-    byo_proxy: bool
-    allow_bandwidth_overage: bool
-    bandwidth_overage_rate_cents: int
+    allow_hours_overage: bool
+    byo_proxy_only: bool  # account may only use BYO proxies (no pool proxy)
+    bandwidth_rate_cents: int  # pool-proxy bandwidth, cents per GB
+    hours_overage_rate_cents: int  # cents per hour over plan minutes
+    must_change_password: bool
+    email_verified: bool
+    account_status: AccountStatus
+    oauth_provider: str  # "google" | "github"; absent for password accounts
     created_at: str
+
+
+class ChangePasswordResult(TypedDict, total=False):
+    message: str
+    # Fresh tokens — issued so a programmatic client can swap credentials
+    # without a re-login. Absent for cookie/session-only flows.
+    access_token: str
+    refresh_token: str
+    token_type: str
 
 
 class FileInfo(TypedDict, total=False):

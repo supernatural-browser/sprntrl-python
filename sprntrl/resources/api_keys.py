@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .._types import APIKey, APIKeyCreated
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -22,7 +23,7 @@ class APIKeys:
         return self._client._request("POST", "/api/v1/apikeys", json={"name": name})
 
     def revoke(self, key_id: str) -> None:
-        self._client._request("DELETE", f"/api/v1/apikeys/{key_id}")
+        self._client._request("DELETE", f"/api/v1/apikeys/{seg(key_id)}")
 
 
 class AsyncAPIKeys:
@@ -39,4 +40,4 @@ class AsyncAPIKeys:
         )
 
     async def revoke(self, key_id: str) -> None:
-        await self._client._request("DELETE", f"/api/v1/apikeys/{key_id}")
+        await self._client._request("DELETE", f"/api/v1/apikeys/{seg(key_id)}")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .._types import User as UserModel
+from .._types import ChangePasswordResult, User as UserModel
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -21,11 +21,17 @@ class User:
             body["name"] = name
         return self._client._request("PUT", "/api/v1/user/me", json=body)
 
+    def get_settings(self) -> UserModel:
+        """Read the account settings (same shape as ``me()``)."""
+        return self._client._request("GET", "/api/v1/user/me/settings")
+
     def update_settings(self, **fields: Any) -> UserModel:
         return self._client._request("PUT", "/api/v1/user/me/settings", json=fields)
 
-    def change_password(self, current_password: str, new_password: str) -> None:
-        self._client._request(
+    def change_password(
+        self, current_password: str, new_password: str
+    ) -> ChangePasswordResult:
+        return self._client._request(
             "PUT",
             "/api/v1/user/change-password",
             json={"current_password": current_password, "new_password": new_password},
@@ -45,13 +51,19 @@ class AsyncUser:
             body["name"] = name
         return await self._client._request("PUT", "/api/v1/user/me", json=body)
 
+    async def get_settings(self) -> UserModel:
+        """Read the account settings (same shape as ``me()``)."""
+        return await self._client._request("GET", "/api/v1/user/me/settings")
+
     async def update_settings(self, **fields: Any) -> UserModel:
         return await self._client._request(
             "PUT", "/api/v1/user/me/settings", json=fields
         )
 
-    async def change_password(self, current_password: str, new_password: str) -> None:
-        await self._client._request(
+    async def change_password(
+        self, current_password: str, new_password: str
+    ) -> ChangePasswordResult:
+        return await self._client._request(
             "PUT",
             "/api/v1/user/change-password",
             json={"current_password": current_password, "new_password": new_password},

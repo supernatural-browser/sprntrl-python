@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .._types import Profile
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -48,20 +49,20 @@ class Profiles:
         return resp.get("profiles", [])
 
     def get(self, profile_id: str) -> Profile:
-        return self._client._request("GET", f"/api/v1/profiles/{profile_id}")
+        return self._client._request("GET", f"/api/v1/profiles/{seg(profile_id)}")
 
     def update(self, profile_id: str, **fields: Any) -> Profile:
         return self._client._request(
-            "PUT", f"/api/v1/profiles/{profile_id}", json=fields
+            "PUT", f"/api/v1/profiles/{seg(profile_id)}", json=fields
         )
 
     def duplicate(self, profile_id: str) -> Profile:
         return self._client._request(
-            "POST", f"/api/v1/profiles/{profile_id}/duplicate"
+            "POST", f"/api/v1/profiles/{seg(profile_id)}/duplicate"
         )
 
     def delete(self, profile_id: str) -> None:
-        self._client._request("DELETE", f"/api/v1/profiles/{profile_id}")
+        self._client._request("DELETE", f"/api/v1/profiles/{seg(profile_id)}")
 
 
 class AsyncProfiles:
@@ -78,17 +79,17 @@ class AsyncProfiles:
         return resp.get("profiles", [])
 
     async def get(self, profile_id: str) -> Profile:
-        return await self._client._request("GET", f"/api/v1/profiles/{profile_id}")
+        return await self._client._request("GET", f"/api/v1/profiles/{seg(profile_id)}")
 
     async def update(self, profile_id: str, **fields: Any) -> Profile:
         return await self._client._request(
-            "PUT", f"/api/v1/profiles/{profile_id}", json=fields
+            "PUT", f"/api/v1/profiles/{seg(profile_id)}", json=fields
         )
 
     async def duplicate(self, profile_id: str) -> Profile:
         return await self._client._request(
-            "POST", f"/api/v1/profiles/{profile_id}/duplicate"
+            "POST", f"/api/v1/profiles/{seg(profile_id)}/duplicate"
         )
 
     async def delete(self, profile_id: str) -> None:
-        await self._client._request("DELETE", f"/api/v1/profiles/{profile_id}")
+        await self._client._request("DELETE", f"/api/v1/profiles/{seg(profile_id)}")

@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://sprntrl.ai"
+Homepage = "https://supernatural.sh"
 Repository = "https://github.com/sprntrl/sprntrl-python"
-Documentation = "https://docs.sprntrl.ai"
+Documentation = "https://docs.supernatural.sh"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sprntrl"]

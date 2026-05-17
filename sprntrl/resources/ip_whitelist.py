@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .._types import IPWhitelistEntry
+from .._utils import seg
 
 if TYPE_CHECKING:
     from .._base_client import SyncClient, AsyncClient
@@ -32,7 +33,7 @@ class IPWhitelist:
 
     def remove(self, entry_id: str) -> None:
         self._client._request(
-            "DELETE", f"/api/v1/settings/ip-whitelist/{entry_id}"
+            "DELETE", f"/api/v1/settings/ip-whitelist/{seg(entry_id)}"
         )
 
 
@@ -51,5 +52,5 @@ class AsyncIPWhitelist:
 
     async def remove(self, entry_id: str) -> None:
         await self._client._request(
-            "DELETE", f"/api/v1/settings/ip-whitelist/{entry_id}"
+            "DELETE", f"/api/v1/settings/ip-whitelist/{seg(entry_id)}"
         )

@@ -17,7 +17,7 @@ from ._errors import (
 )
 
 
-DEFAULT_BASE_URL = "https://api.sprntrl.ai"
+DEFAULT_BASE_URL = "https://api.supernatural.sh"
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_RETRIES = 2
 _USER_AGENT = "sprntrl-python/0.1.0"
@@ -155,7 +155,7 @@ class SyncClient(_BaseClient):
                     time.sleep(self._backoff(attempt))
                     continue
                 msg, body = self._parse_error(response)
-                raise error_for_status(status, msg, response=response, body=body)
+                raise error_for_status(status, msg, body=body)
             if attempt < self.max_retries:
                 time.sleep(self._backoff(attempt))
                 continue
@@ -223,7 +223,7 @@ class AsyncClient(_BaseClient):
                     await asyncio.sleep(self._backoff(attempt))
                     continue
                 msg, body = self._parse_error(response)
-                raise error_for_status(status, msg, response=response, body=body)
+                raise error_for_status(status, msg, body=body)
             if attempt < self.max_retries:
                 await asyncio.sleep(self._backoff(attempt))
                 continue
