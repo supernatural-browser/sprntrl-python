@@ -53,6 +53,7 @@ def _build_create_body(
     *,
     persistent: bool = False,
     captcha_solver: bool = False,
+    isolated_world: bool | None = None,
     session_name: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -63,6 +64,8 @@ def _build_create_body(
     }
     if captcha_solver:
         body["captcha_solver"] = True
+    if isolated_world is not None:
+        body["isolated_world"] = isolated_world
     if session_name is not None:
         body["session_name"] = session_name
     body.update(_normalize_proxy(proxy))
@@ -82,13 +85,23 @@ class Sessions:
         *,
         persistent: bool = False,
         captcha_solver: bool = False,
+        isolated_world: bool | None = None,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
+        """Create a stealth browser session.
+
+        ``isolated_world`` controls whether automation runs in a V8 world
+        hidden from the page (default: True on the server). Leave as ``None``
+        to use the platform default. Pass ``False`` only when you must read
+        page-defined JavaScript globals or call ``window.*`` page functions —
+        main-world execution is visible to anti-bot detection.
+        """
         body = _build_create_body(
             os, location,
             persistent=persistent,
             captcha_solver=captcha_solver,
+            isolated_world=isolated_world,
             session_name=session_name,
             proxy=proxy,
         )
@@ -262,13 +275,23 @@ class AsyncSessions:
         *,
         persistent: bool = False,
         captcha_solver: bool = False,
+        isolated_world: bool | None = None,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
+        """Create a stealth browser session.
+
+        ``isolated_world`` controls whether automation runs in a V8 world
+        hidden from the page (default: True on the server). Leave as ``None``
+        to use the platform default. Pass ``False`` only when you must read
+        page-defined JavaScript globals or call ``window.*`` page functions —
+        main-world execution is visible to anti-bot detection.
+        """
         body = _build_create_body(
             os, location,
             persistent=persistent,
             captcha_solver=captcha_solver,
+            isolated_world=isolated_world,
             session_name=session_name,
             proxy=proxy,
         )
