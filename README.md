@@ -17,7 +17,7 @@ from sprntrl import Sprntrl
 
 client = Sprntrl()  # reads SPRNTRL_API_KEY from env
 
-session = client.sessions.create(os="macos", location="us-east")
+session = client.sessions.create(os="macos", location="America/New_York")
 
 # browser_session is a context manager that waits for the session,
 # connects Playwright, and closes the browser + Playwright on exit.
@@ -38,7 +38,7 @@ from sprntrl import AsyncSprntrl
 
 async def main():
     async with AsyncSprntrl() as client:
-        session = await client.sessions.create(os="macos", location="us-east")
+        session = await client.sessions.create(os="macos", location="America/New_York")
         async with client.sessions.browser_session(session["id"], auto_whitelist=True) as browser:
             page = await browser.contexts[0].new_page()
             await page.goto("https://example.com")
@@ -95,7 +95,7 @@ from sprntrl import Sprntrl, APIError, RateLimitError, AuthenticationError
 
 client = Sprntrl()
 try:
-    client.sessions.create(os="macos", location="us-east")
+    client.sessions.create(os="macos", location="America/New_York")
 except RateLimitError as e:
     print("rate limited:", e.status, e.body)
 except AuthenticationError:

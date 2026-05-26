@@ -5,7 +5,7 @@ from sprntrl import Sprntrl
 
 def main() -> None:
     with Sprntrl() as client:
-        session = client.sessions.create(os="macos", location="us-east")
+        session = client.sessions.create(os="macos", location="America/New_York")
         print(f"created {session['id']} (status={session['status']})")
 
         session = client.sessions.wait_until_ready(session["id"])

@@ -8,7 +8,7 @@ from sprntrl import Sprntrl
 
 def main() -> None:
     with Sprntrl() as client:
-        session = client.sessions.create(os="macos", location="us-east")
+        session = client.sessions.create(os="macos", location="America/New_York")
         try:
             browser = client.sessions.connect(
                 session["id"], auto_whitelist=True

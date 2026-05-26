@@ -24,7 +24,7 @@ class Sprntrl(SyncClient):
 
     Usage:
         with Sprntrl() as client:
-            session = client.sessions.create(os="macos", location="us-east")
+            session = client.sessions.create(os="macos", location="America/New_York")
             client.sessions.wait_until_ready(session["id"])
     """
 
@@ -44,7 +44,7 @@ class AsyncSprntrl(AsyncClient):
 
     Usage:
         async with AsyncSprntrl() as client:
-            session = await client.sessions.create(os="macos", location="us-east")
+            session = await client.sessions.create(os="macos", location="America/New_York")
             await client.sessions.wait_until_ready(session["id"])
     """
 
