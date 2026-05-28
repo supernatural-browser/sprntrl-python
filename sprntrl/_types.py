@@ -159,3 +159,38 @@ class FileInfo(TypedDict, total=False):
     name: str
     size: int
     modified: str
+
+
+ExtensionSource = Literal["upload", "webstore", "crx_url"]
+
+
+class SessionExtension(TypedDict, total=False):
+    """One Chrome extension attached to a persistent session's profile."""
+
+    id: str  # internal UUID — pass to set_enabled() / remove()
+    user_id: str
+    session_name: str
+    extension_id: str  # 32-char chromium ID
+    name: str
+    version: str
+    manifest_version: int
+    permissions: list[str]
+    host_permissions: list[str]
+    source: ExtensionSource
+    source_ref: str | None
+    size_bytes: int
+    sha256: str
+    enabled: bool
+    created_at: str
+    updated_at: str
+
+
+class ExtensionInlineSpec(TypedDict, total=False):
+    """Inline extension spec for ephemeral sessions on
+    ``sessions.create(extensions=...)``. Exactly one of ``upload_b64``,
+    ``webstore_url``, or ``crx_url`` must be set per entry."""
+
+    upload_b64: str  # base64-encoded ZIP or CRX bytes
+    filename: str
+    webstore_url: str  # chromewebstore.google.com URL or bare 32-char ID
+    crx_url: str  # direct HTTPS URL to a .crx or .zip

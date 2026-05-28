@@ -6,7 +6,7 @@ import contextlib
 from typing import TYPE_CHECKING, Any, AsyncIterator, Iterator, Mapping
 from urllib.parse import urlparse, urlunparse
 
-from .._types import OS, ProxyConfig, Session, PaginatedSessions
+from .._types import OS, ProxyConfig, Session, PaginatedSessions, ExtensionInlineSpec
 from .._errors import SprntrlError
 from .._utils import seg
 
@@ -47,6 +47,32 @@ def _normalize_proxy(proxy: str | Mapping[str, Any] | None) -> dict[str, Any]:
     return out
 
 
+def _normalize_extensions(extensions: list[ExtensionInlineSpec] | None) -> list[dict[str, Any]]:
+    """Convert SDK ExtensionInlineSpec dicts to the wire shape the API expects.
+
+    Each entry must set exactly one source. Extras are silently dropped so
+    a caller passing a typo doesn't paper over the missing source.
+    """
+    if not extensions:
+        return []
+    out: list[dict[str, Any]] = []
+    for i, spec in enumerate(extensions):
+        sources = sum(
+            1 for k in ("upload_b64", "webstore_url", "crx_url")
+            if spec.get(k)  # type: ignore[arg-type]
+        )
+        if sources != 1:
+            raise SprntrlError(
+                f"extensions[{i}]: provide exactly one of upload_b64, webstore_url, crx_url"
+            )
+        entry: dict[str, Any] = {}
+        for key in ("upload_b64", "filename", "webstore_url", "crx_url"):
+            if spec.get(key):  # type: ignore[arg-type]
+                entry[key] = spec[key]  # type: ignore[index]
+        out.append(entry)
+    return out
+
+
 def _build_create_body(
     os: OS,
     location: str,
@@ -56,6 +82,7 @@ def _build_create_body(
     isolated_world: bool | None = None,
     session_name: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
+    extensions: list[ExtensionInlineSpec] | None = None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {
         "os": os,
@@ -69,6 +96,9 @@ def _build_create_body(
     if session_name is not None:
         body["session_name"] = session_name
     body.update(_normalize_proxy(proxy))
+    ext_payload = _normalize_extensions(extensions)
+    if ext_payload:
+        body["extensions"] = ext_payload
     return body
 
 
@@ -76,7 +106,9 @@ class Sessions:
     def __init__(self, client: "SyncClient") -> None:
         self._client = client
         from .files import SessionFiles
+        from .extensions import SessionExtensions
         self.files = SessionFiles(client)
+        self.extensions = SessionExtensions(client)
 
     def create(
         self,
@@ -88,6 +120,7 @@ class Sessions:
         isolated_world: bool | None = None,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
+        extensions: list[ExtensionInlineSpec] | None = None,
     ) -> Session:
         """Create a stealth browser session.
 
@@ -96,6 +129,13 @@ class Sessions:
         to use the platform default. Pass ``False`` only when you must read
         page-defined JavaScript globals or call ``window.*`` page functions —
         main-world execution is visible to anti-bot detection.
+
+        ``extensions`` ships Chrome extensions for the session to load at
+        Chrome launch. Only honoured for ephemeral sessions — persistent
+        sessions manage extensions via ``client.sessions.extensions.*`` so
+        the set survives stop/resume cycles. Each spec sets exactly one of
+        ``upload_b64`` (base64 ZIP/CRX bytes), ``webstore_url`` (Chrome
+        Web Store URL or ID), or ``crx_url`` (direct HTTPS URL to a .crx).
         """
         body = _build_create_body(
             os, location,
@@ -104,6 +144,7 @@ class Sessions:
             isolated_world=isolated_world,
             session_name=session_name,
             proxy=proxy,
+            extensions=extensions,
         )
         return self._client._request("POST", "/api/v1/sessions", json=body)
 
@@ -144,9 +185,24 @@ class Sessions:
     def stop(self, session_id: str) -> None:
         self._client._request("DELETE", f"/api/v1/sessions/{seg(session_id)}")
 
-    def resume(self, session_id: str) -> Session:
+    def resume(
+        self,
+        session_id: str,
+        *,
+        proxy: str | ProxyConfig | None = None,
+    ) -> Session:
+        """Resume a stopped persistent session.
+
+        By default the proxy used at the previous run is reused. Pass
+        ``proxy`` (URL string or ``ProxyConfig``) to switch to a different
+        BYO proxy for this and future resumes. OS, location, and the
+        fingerprint pin are immutable after create.
+        """
+        body = _normalize_proxy(proxy)
         return self._client._request(
-            "POST", f"/api/v1/sessions/{seg(session_id)}/resume"
+            "POST",
+            f"/api/v1/sessions/{seg(session_id)}/resume",
+            json=body if body else None,
         )
 
     def delete_persistent(self, session_id: str) -> None:
@@ -266,7 +322,9 @@ class AsyncSessions:
     def __init__(self, client: "AsyncClient") -> None:
         self._client = client
         from .files import AsyncSessionFiles
+        from .extensions import AsyncSessionExtensions
         self.files = AsyncSessionFiles(client)
+        self.extensions = AsyncSessionExtensions(client)
 
     async def create(
         self,
@@ -278,14 +336,11 @@ class AsyncSessions:
         isolated_world: bool | None = None,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
+        extensions: list[ExtensionInlineSpec] | None = None,
     ) -> Session:
         """Create a stealth browser session.
 
-        ``isolated_world`` controls whether automation runs in a V8 world
-        hidden from the page (default: True on the server). Leave as ``None``
-        to use the platform default. Pass ``False`` only when you must read
-        page-defined JavaScript globals or call ``window.*`` page functions —
-        main-world execution is visible to anti-bot detection.
+        See :py:meth:`Sessions.create` for details. Async equivalent.
         """
         body = _build_create_body(
             os, location,
@@ -294,6 +349,7 @@ class AsyncSessions:
             isolated_world=isolated_world,
             session_name=session_name,
             proxy=proxy,
+            extensions=extensions,
         )
         return await self._client._request("POST", "/api/v1/sessions", json=body)
 
@@ -334,9 +390,22 @@ class AsyncSessions:
     async def stop(self, session_id: str) -> None:
         await self._client._request("DELETE", f"/api/v1/sessions/{seg(session_id)}")
 
-    async def resume(self, session_id: str) -> Session:
+    async def resume(
+        self,
+        session_id: str,
+        *,
+        proxy: str | ProxyConfig | None = None,
+    ) -> Session:
+        """Resume a stopped persistent session.
+
+        Pass ``proxy`` to switch the session's proxy on resume. See the
+        sync ``Sessions.resume`` docstring for the full contract.
+        """
+        body = _normalize_proxy(proxy)
         return await self._client._request(
-            "POST", f"/api/v1/sessions/{seg(session_id)}/resume"
+            "POST",
+            f"/api/v1/sessions/{seg(session_id)}/resume",
+            json=body if body else None,
         )
 
     async def delete_persistent(self, session_id: str) -> None:
