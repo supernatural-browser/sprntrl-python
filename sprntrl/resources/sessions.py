@@ -80,6 +80,8 @@ def _build_create_body(
     persistent: bool = False,
     captcha_solver: bool = False,
     isolated_world: bool | None = None,
+    headless: bool | None = None,
+    block_images: bool = False,
     session_name: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
     extensions: list[ExtensionInlineSpec] | None = None,
@@ -93,6 +95,10 @@ def _build_create_body(
         body["captcha_solver"] = True
     if isolated_world is not None:
         body["isolated_world"] = isolated_world
+    if headless is not None:
+        body["headless"] = headless
+    if block_images:
+        body["block_images"] = True
     if session_name is not None:
         body["session_name"] = session_name
     body.update(_normalize_proxy(proxy))
@@ -118,6 +124,8 @@ class Sessions:
         persistent: bool = False,
         captcha_solver: bool = False,
         isolated_world: bool | None = None,
+        headless: bool | None = None,
+        block_images: bool = False,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
@@ -129,6 +137,15 @@ class Sessions:
         to use the platform default. Pass ``False`` only when you must read
         page-defined JavaScript globals or call ``window.*`` page functions —
         main-world execution is visible to anti-bot detection.
+
+        ``headless`` launches Chrome with ``--headless=new``. Default ``True``
+        on the server for SDK callers — pass ``False`` if you also want a
+        live VNC viewer of the session (e.g. for human-assisted debugging).
+        Leave as ``None`` to use the platform default.
+
+        ``block_images`` launches Chrome with
+        ``--blink-settings=imagesEnabled=false`` (default False) — speeds
+        up loads and cuts bandwidth on image-heavy sites.
 
         ``extensions`` ships Chrome extensions for the session to load at
         Chrome launch. Only honoured for ephemeral sessions — persistent
@@ -142,6 +159,8 @@ class Sessions:
             persistent=persistent,
             captcha_solver=captcha_solver,
             isolated_world=isolated_world,
+            headless=headless,
+            block_images=block_images,
             session_name=session_name,
             proxy=proxy,
             extensions=extensions,
@@ -334,6 +353,8 @@ class AsyncSessions:
         persistent: bool = False,
         captcha_solver: bool = False,
         isolated_world: bool | None = None,
+        headless: bool | None = None,
+        block_images: bool = False,
         session_name: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
@@ -347,6 +368,8 @@ class AsyncSessions:
             persistent=persistent,
             captcha_solver=captcha_solver,
             isolated_world=isolated_world,
+            headless=headless,
+            block_images=block_images,
             session_name=session_name,
             proxy=proxy,
             extensions=extensions,
