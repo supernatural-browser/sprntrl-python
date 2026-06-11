@@ -1,5 +1,6 @@
 """Sprntrl Python SDK — stealth browser-as-a-service client."""
 
+from ._version import __version__
 from ._client import Sprntrl, AsyncSprntrl
 from ._errors import (
     SprntrlError,
@@ -15,8 +16,6 @@ from ._errors import (
     APIConnectionError,
     APIConnectionTimeoutError,
 )
-
-__version__ = "0.1.1"
 
 __all__ = [
     "Sprntrl",

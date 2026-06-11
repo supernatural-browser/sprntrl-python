@@ -15,12 +15,13 @@ from ._errors import (
     error_for_status,
     SprntrlError,
 )
+from ._version import __version__
 
 
 DEFAULT_BASE_URL = "https://api.supernatural.sh"
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_RETRIES = 2
-_USER_AGENT = "sprntrl-python/0.1.0"
+_USER_AGENT = f"sprntrl-python/{__version__}"
 
 JSONLike = Union[Mapping[str, Any], list, str, int, float, bool, None]
 

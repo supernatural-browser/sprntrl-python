@@ -59,6 +59,28 @@ class PaginatedSessions(TypedDict):
     per_page: int
 
 
+class LocationOption(TypedDict):
+    """One pickable (label, location) pair the proxy pool currently serves.
+
+    ``location`` is an IANA timezone (drives the browser fingerprint);
+    ``label`` is the human-readable pool slice at that location (e.g.
+    "Kentucky, US") — may be None/empty for unlabeled pool rows."""
+
+    location: str
+    label: str | None
+
+
+class LocationOptions(TypedDict, total=False):
+    """Response of ``sessions.list_locations()``.
+
+    ``accepts_iana`` True means BYO-proxy users may pass any IANA timezone
+    as ``location`` on create; pool users must pick from ``options``."""
+
+    options: list[LocationOption]
+    accepts_iana: bool
+    iana_examples: list[str]
+
+
 class Profile(TypedDict, total=False):
     id: str
     user_id: str

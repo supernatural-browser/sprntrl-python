@@ -6,7 +6,14 @@ import contextlib
 from typing import TYPE_CHECKING, Any, AsyncIterator, Iterator, Mapping
 from urllib.parse import urlparse, urlunparse
 
-from .._types import OS, ProxyConfig, Session, PaginatedSessions, ExtensionInlineSpec
+from .._types import (
+    OS,
+    ProxyConfig,
+    Session,
+    PaginatedSessions,
+    LocationOptions,
+    ExtensionInlineSpec,
+)
 from .._errors import SprntrlError
 from .._utils import seg
 
@@ -83,6 +90,7 @@ def _build_create_body(
     headless: bool | None = None,
     block_images: bool = False,
     session_name: str | None = None,
+    label: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
     extensions: list[ExtensionInlineSpec] | None = None,
 ) -> dict[str, Any]:
@@ -101,10 +109,45 @@ def _build_create_body(
         body["block_images"] = True
     if session_name is not None:
         body["session_name"] = session_name
+    if label is not None:
+        body["label"] = label
     body.update(_normalize_proxy(proxy))
     ext_payload = _normalize_extensions(extensions)
     if ext_payload:
         body["extensions"] = ext_payload
+    return body
+
+
+def _build_resume_body(
+    *,
+    os: OS | None = None,
+    location: str | None = None,
+    label: str | None = None,
+    captcha_solver: bool | None = None,
+    isolated_world: bool | None = None,
+    headless: bool | None = None,
+    block_images: bool | None = None,
+    proxy: str | Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Only non-None fields go on the wire — omitted means "keep the
+    stored value". Note label="" is sent (it explicitly clears the
+    stored label)."""
+    body: dict[str, Any] = {}
+    if os is not None:
+        body["os"] = os
+    if location is not None:
+        body["location"] = location
+    if label is not None:
+        body["label"] = label
+    if captcha_solver is not None:
+        body["captcha_solver"] = captcha_solver
+    if isolated_world is not None:
+        body["isolated_world"] = isolated_world
+    if headless is not None:
+        body["headless"] = headless
+    if block_images is not None:
+        body["block_images"] = block_images
+    body.update(_normalize_proxy(proxy))
     return body
 
 
@@ -127,10 +170,15 @@ class Sessions:
         headless: bool | None = None,
         block_images: bool = False,
         session_name: str | None = None,
+        label: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
     ) -> Session:
         """Create a stealth browser session.
+
+        ``label`` pins the proxy-pool match to a specific pool row at the
+        chosen ``location`` (one of the labels from ``list_locations()``,
+        e.g. "Kentucky, US"). Ignored for BYO-proxy sessions.
 
         ``isolated_world`` controls whether automation runs in a V8 world
         hidden from the page (default: True on the server). Leave as ``None``
@@ -162,6 +210,7 @@ class Sessions:
             headless=headless,
             block_images=block_images,
             session_name=session_name,
+            label=label,
             proxy=proxy,
             extensions=extensions,
         )
@@ -194,9 +243,14 @@ class Sessions:
         resp = self._client._request("GET", "/api/v1/sessions/persistent")
         return resp.get("sessions", [])
 
-    def list_locations(self) -> list[str]:
-        resp = self._client._request("GET", "/api/v1/sessions/locations")
-        return resp.get("locations", [])
+    def list_locations(self) -> LocationOptions:
+        """Locations the proxy pool currently serves.
+
+        Returns ``options`` — (label, location) pairs to pick from on
+        ``create()`` — plus ``accepts_iana``: when True, BYO-proxy users may
+        pass any IANA timezone as ``location``; pool users must pick from
+        ``options`` (see ``iana_examples`` for valid IANA values)."""
+        return self._client._request("GET", "/api/v1/sessions/locations")
 
     def get(self, session_id: str) -> Session:
         return self._client._request("GET", f"/api/v1/sessions/{seg(session_id)}")
@@ -208,16 +262,43 @@ class Sessions:
         self,
         session_id: str,
         *,
+        os: OS | None = None,
+        location: str | None = None,
+        label: str | None = None,
+        captcha_solver: bool | None = None,
+        isolated_world: bool | None = None,
+        headless: bool | None = None,
+        block_images: bool | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
-        """Resume a stopped persistent session.
+        """Resume a stopped persistent session, optionally editing its
+        create-time options. Every override is optional — ``None`` (the
+        default) keeps the stored value.
 
-        By default the proxy used at the previous run is reused. Pass
-        ``proxy`` (URL string or ``ProxyConfig``) to switch to a different
-        BYO proxy for this and future resumes. OS, location, and the
-        fingerprint pin are immutable after create.
+        - ``os`` / ``location``: changing either rebuilds the persistent
+          profile's pinned fingerprint — an intentional one-time identity
+          drift from this resume on. Changing ``location`` on a pool
+          (non-BYO) session also re-assigns a pool proxy for the new region.
+        - ``label``: re-pins the pool match to a specific (location, label)
+          row; pass ``""`` to explicitly clear the stored label.
+        - ``captcha_solver`` / ``isolated_world`` / ``headless`` /
+          ``block_images``: pure launch params on the fresh container, no
+          fingerprint impact.
+        - ``proxy`` (URL string or ``ProxyConfig``): sets/replaces a BYO
+          proxy for this and future resumes — also switches a pool session
+          to BYO. Switching BYO back to pool is not supported on resume;
+          delete the profile and recreate it instead.
         """
-        body = _normalize_proxy(proxy)
+        body = _build_resume_body(
+            os=os,
+            location=location,
+            label=label,
+            captcha_solver=captcha_solver,
+            isolated_world=isolated_world,
+            headless=headless,
+            block_images=block_images,
+            proxy=proxy,
+        )
         return self._client._request(
             "POST",
             f"/api/v1/sessions/{seg(session_id)}/resume",
@@ -356,6 +437,7 @@ class AsyncSessions:
         headless: bool | None = None,
         block_images: bool = False,
         session_name: str | None = None,
+        label: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
     ) -> Session:
@@ -371,6 +453,7 @@ class AsyncSessions:
             headless=headless,
             block_images=block_images,
             session_name=session_name,
+            label=label,
             proxy=proxy,
             extensions=extensions,
         )
@@ -403,9 +486,10 @@ class AsyncSessions:
         resp = await self._client._request("GET", "/api/v1/sessions/persistent")
         return resp.get("sessions", [])
 
-    async def list_locations(self) -> list[str]:
-        resp = await self._client._request("GET", "/api/v1/sessions/locations")
-        return resp.get("locations", [])
+    async def list_locations(self) -> LocationOptions:
+        """Locations the proxy pool currently serves. See the sync
+        ``Sessions.list_locations`` docstring for the shape."""
+        return await self._client._request("GET", "/api/v1/sessions/locations")
 
     async def get(self, session_id: str) -> Session:
         return await self._client._request("GET", f"/api/v1/sessions/{seg(session_id)}")
@@ -417,14 +501,30 @@ class AsyncSessions:
         self,
         session_id: str,
         *,
+        os: OS | None = None,
+        location: str | None = None,
+        label: str | None = None,
+        captcha_solver: bool | None = None,
+        isolated_world: bool | None = None,
+        headless: bool | None = None,
+        block_images: bool | None = None,
         proxy: str | ProxyConfig | None = None,
     ) -> Session:
-        """Resume a stopped persistent session.
-
-        Pass ``proxy`` to switch the session's proxy on resume. See the
-        sync ``Sessions.resume`` docstring for the full contract.
+        """Resume a stopped persistent session, optionally editing its
+        create-time options. ``None`` keeps the stored value. See the sync
+        ``Sessions.resume`` docstring for the full contract (fingerprint
+        drift on os/location changes, label clearing, pool→BYO switch).
         """
-        body = _normalize_proxy(proxy)
+        body = _build_resume_body(
+            os=os,
+            location=location,
+            label=label,
+            captcha_solver=captcha_solver,
+            isolated_world=isolated_world,
+            headless=headless,
+            block_images=block_images,
+            proxy=proxy,
+        )
         return await self._client._request(
             "POST",
             f"/api/v1/sessions/{seg(session_id)}/resume",
