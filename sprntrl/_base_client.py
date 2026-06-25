@@ -68,19 +68,60 @@ class _BaseClient:
             path = "/" + path
         return self.base_url + path
 
-    @staticmethod
-    def _should_retry(exc: Exception | None, status: int | None) -> bool:
+    # Codes the server sends on a 429 that represents a non-transient
+    # quota/capacity limit (at your concurrent-session cap, out of plan usage,
+    # etc.). Waiting does NOT clear these — only changing state (stopping a
+    # session, upgrading) does — so retrying just amplifies load and can never
+    # succeed. A 429 without one of these codes (or with "rate_limited") is a
+    # real throttle and stays retryable.
+    _NON_RETRYABLE_429_CODES = frozenset({
+        "concurrent_session_limit",
+        "usage_limit_exceeded",
+        "persistent_profile_limit",
+        "bandwidth_limit_reached",
+        "byo_not_supported",
+    })
+
+    @classmethod
+    def _should_retry(cls, exc: Exception | None, status: int | None, code: str | None = None) -> bool:
         if exc is not None:
             return True  # connection-level errors
         if status is None:
             return False
-        return status == 408 or status == 409 or status == 429 or status >= 500
+        if status == 429:
+            return code not in cls._NON_RETRYABLE_429_CODES
+        # 408 Request Timeout and 5xx are transient. 409 Conflict is a state
+        # conflict (e.g. profile already exists) — retrying won't help.
+        return status == 408 or status >= 500
 
     @staticmethod
     def _backoff(attempt: int) -> float:
         # 0.5s, 1s, 2s + jitter
         base = 0.5 * (2 ** attempt)
         return base + random.uniform(0, 0.25)
+
+    @staticmethod
+    def _error_code(response: httpx.Response) -> str | None:
+        """The machine-readable `code` from a JSON error body, if any."""
+        try:
+            body = response.json()
+        except Exception:
+            return None
+        if isinstance(body, dict) and isinstance(body.get("code"), str):
+            return body["code"]
+        return None
+
+    @classmethod
+    def _retry_delay(cls, attempt: int, response: httpx.Response) -> float:
+        """Honor a server Retry-After (seconds) when present — capped so a
+        large value can't hang the caller — else exponential backoff."""
+        ra = response.headers.get("Retry-After")
+        if ra:
+            try:
+                return max(0.0, min(float(ra), 30.0))
+            except ValueError:
+                pass
+        return cls._backoff(attempt)
 
     @staticmethod
     def _parse_error(response: httpx.Response) -> tuple[str, Any]:
@@ -152,8 +193,9 @@ class SyncClient(_BaseClient):
                     if "application/json" in ctype:
                         return response.json()
                     return response.content
-                if self._should_retry(None, status) and attempt < self.max_retries:
-                    time.sleep(self._backoff(attempt))
+                code = self._error_code(response)
+                if self._should_retry(None, status, code) and attempt < self.max_retries:
+                    time.sleep(self._retry_delay(attempt, response))
                     continue
                 msg, body = self._parse_error(response)
                 raise error_for_status(status, msg, body=body)
@@ -220,8 +262,9 @@ class AsyncClient(_BaseClient):
                     if "application/json" in ctype:
                         return response.json()
                     return response.content
-                if self._should_retry(None, status) and attempt < self.max_retries:
-                    await asyncio.sleep(self._backoff(attempt))
+                code = self._error_code(response)
+                if self._should_retry(None, status, code) and attempt < self.max_retries:
+                    await asyncio.sleep(self._retry_delay(attempt, response))
                     continue
                 msg, body = self._parse_error(response)
                 raise error_for_status(status, msg, body=body)

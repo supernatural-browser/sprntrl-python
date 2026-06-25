@@ -5,4 +5,4 @@ without importing the package ``__init__`` (which would be circular).
 Keep in sync with ``pyproject.toml``.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
