@@ -186,10 +186,11 @@ class Sessions:
         page-defined JavaScript globals or call ``window.*`` page functions —
         main-world execution is visible to anti-bot detection.
 
-        ``headless`` launches Chrome with ``--headless=new``. Default ``True``
-        on the server for SDK callers — pass ``False`` if you also want a
-        live VNC viewer of the session (e.g. for human-assisted debugging).
-        Leave as ``None`` to use the platform default.
+        ``headless`` is deprecated and ignored. Headless mode is disabled
+        platform-wide because headless Chrome is trivially detectable and
+        would break the session's stealth — every session runs headed
+        regardless of this value. The parameter is still accepted for
+        backward compatibility.
 
         ``block_images`` launches Chrome with
         ``--blink-settings=imagesEnabled=false`` (default False) — speeds
@@ -281,9 +282,10 @@ class Sessions:
           (non-BYO) session also re-assigns a pool proxy for the new region.
         - ``label``: re-pins the pool match to a specific (location, label)
           row; pass ``""`` to explicitly clear the stored label.
-        - ``captcha_solver`` / ``isolated_world`` / ``headless`` /
-          ``block_images``: pure launch params on the fresh container, no
-          fingerprint impact.
+        - ``captcha_solver`` / ``isolated_world`` / ``block_images``: pure
+          launch params on the fresh container, no fingerprint impact.
+        - ``headless``: deprecated and ignored — headless is disabled
+          platform-wide; every resume relaunches headed.
         - ``proxy`` (URL string or ``ProxyConfig``): sets/replaces a BYO
           proxy for this and future resumes — also switches a pool session
           to BYO. Switching BYO back to pool is not supported on resume;

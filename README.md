@@ -71,7 +71,7 @@ url = client.sessions.cdp_url(session_id)
 - `persistent` + `session_name` — keep the browser profile across stop/resume (see below).
 - `captcha_solver` — auto-solves hCaptcha, Turnstile, reCAPTCHA and more; billed per solve.
 - `isolated_world` — default `True`: automation runs in a V8 world hidden from the page. Keep it on for stealth — pass `False` only if you must access page JS globals (main-world execution is detectable).
-- `headless` — default **`True`** for API/SDK callers. Pass `False` to get the live browser view in the dashboard.
+- `headless` — deprecated and ignored. Headless mode is disabled platform-wide (headless Chrome is trivially detectable); every session runs headed regardless of what you pass.
 - `block_images` — default `False`. Disables image loading session-wide; cuts bandwidth and speeds up loads.
 - `label` — pins the proxy-pool match to a specific pool row at `location` (one of the labels from `list_locations()`, e.g. `"Kentucky, US"`). Ignored for BYO-proxy sessions.
 - `proxy` — bring your own proxy as a URL string (`"socks5://user:pass@host:1080"`) or dict (`{"protocol": ..., "host": ..., "port": ..., "username": ..., "password": ...}`). HTTP/HTTPS/SOCKS5.
@@ -101,13 +101,13 @@ client.sessions.stop(session["id"])
 
 # Later: relaunch with the same identity. All overrides optional —
 # omitted values keep what's stored on the profile.
-session = client.sessions.resume(session["id"], headless=False)
+session = client.sessions.resume(session["id"], block_images=True)
 
 # Done with the profile entirely:
 client.sessions.delete_persistent(session["id"])
 ```
 
-`resume()` accepts `os`, `location`, `label`, `captcha_solver`, `isolated_world`, `headless`, `block_images`, and `proxy` overrides. Changing `os` or `location` rebuilds the profile's pinned fingerprint — an intentional one-time identity drift; changing `location` on a pool session also re-assigns the pool proxy for the new region. Supplying `proxy` switches a pool session to BYO — switching BYO back to pool is not supported (delete + recreate).
+`resume()` accepts `os`, `location`, `label`, `captcha_solver`, `isolated_world`, `block_images`, and `proxy` overrides (`headless` is accepted but ignored). Changing `os` or `location` rebuilds the profile's pinned fingerprint — an intentional one-time identity drift; changing `location` on a pool session also re-assigns the pool proxy for the new region. Supplying `proxy` switches a pool session to BYO — switching BYO back to pool is not supported (delete + recreate).
 
 ## Files
 
@@ -119,7 +119,7 @@ files = client.sessions.files.list(sid)
 data = client.sessions.files.download(sid, "report.pdf")
 ```
 
-Uploads are capped at 100 MB per request.
+Uploads are capped at 100 MiB per request.
 
 ## Extensions
 
@@ -141,7 +141,7 @@ client.sessions.extensions.set_enabled(sid, ext["id"], False)
 client.sessions.extensions.remove(sid, ext["id"])
 ```
 
-Manifest V3 only (Chromium 148 dropped MV2); max 16 per profile; uploads capped at 50 MiB. Changes take effect at the next session start — stop + resume to apply.
+Manifest V3 only (Chromium 148 dropped MV2); max 16 per profile. Uploads via `extensions.add` are capped at 50 MiB; inline `upload_b64` at create is bound by the 8 MiB request-body limit on `POST /api/v1/sessions`, so use the persistent sub-resource for anything larger. Changes take effect at the next session start — stop + resume to apply.
 
 ## Configuration
 
@@ -184,13 +184,17 @@ except APIError as e:
     print("api error:", e.status, e)
 ```
 
-Transient errors (5xx, 429, 408, connection errors) are retried automatically up to `max_retries` times with exponential backoff.
+5xx, 408 and connection errors are retried automatically up to `max_retries` times. A 429 is retried only when it's a real throttle — quota 429s (`concurrent_session_limit`, `usage_limit_exceeded`, `persistent_profile_limit`, `bandwidth_limit_reached`, `byo_not_supported`) raise immediately, since waiting can't clear them. A server `Retry-After` is honoured when present (capped at 30s), otherwise backoff is exponential. 409 is never retried.
 
 ## Gotchas
 
 - **CDP access is IP-whitelist gated.** The WebSocket at `/api/v1/sessions/:id/cdp` does not accept bearer auth — instead, your public IP (as Cloudflare sees it) must be in your account's whitelist. Use `client.ip_whitelist.add("current")` or pass `auto_whitelist=True` to `sessions.connect`.
 - **Sessions start async.** `sessions.create` returns immediately with `status: "creating"`. Call `sessions.wait_until_ready(id)` before connecting, or just use `sessions.connect()` which waits for you.
 - **API key is shown only once.** `api_keys.create()` returns the full `key` field exactly once — store it immediately.
+- **Playwright only.** Unlike the Node SDK, this SDK has no Puppeteer path — `browser_session()` and `connect()` raise on any other framework.
+- **Close the sync client.** `Sprntrl()` holds an `httpx.Client`; use it as a context manager (`with Sprntrl() as client:`) or call `client.close()`, or you leak the connection pool. `AsyncSprntrl` uses `async with`.
+- **Dropping to raw HTTP? The scheme is `ApiKey`, not `Bearer`.** Send `Authorization: ApiKey sk_...`. `Bearer sk_...` is routed to the JWT branch and 401s. There is no `X-API-Key` header.
+- **A lapsed account returns 402, not 401.** Session routes sit behind the billing gate, so a valid key on a non-active account gets `402 Payment Required`.
 
 ## License
 
