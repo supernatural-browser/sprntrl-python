@@ -89,6 +89,9 @@ def _build_create_body(
     isolated_world: bool | None = None,
     headless: bool | None = None,
     block_images: bool = False,
+    cache_pack: str | None = None,
+    block_trackers: bool = False,
+    block_trackers_exclude: list[str] | None = None,
     session_name: str | None = None,
     label: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
@@ -107,6 +110,12 @@ def _build_create_body(
         body["headless"] = headless
     if block_images:
         body["block_images"] = True
+    if cache_pack:
+        body["cache_pack"] = cache_pack
+    if block_trackers:
+        body["block_trackers"] = True
+    if block_trackers_exclude:
+        body["block_trackers_exclude"] = list(block_trackers_exclude)
     if session_name is not None:
         body["session_name"] = session_name
     if label is not None:
@@ -169,6 +178,9 @@ class Sessions:
         isolated_world: bool | None = None,
         headless: bool | None = None,
         block_images: bool = False,
+        cache_pack: str | None = None,
+        block_trackers: bool = False,
+        block_trackers_exclude: list[str] | None = None,
         session_name: str | None = None,
         label: str | None = None,
         proxy: str | ProxyConfig | None = None,
@@ -196,6 +208,17 @@ class Sessions:
         ``--blink-settings=imagesEnabled=false`` (default False) — speeds
         up loads and cuts bandwidth on image-heavy sites.
 
+        ``cache_pack`` seeds the profile with a published site cache pack
+        (e.g. ``"kayak"``) before Chrome launches, so the first load of that
+        site fetches HTML and data calls only. Unknown names are rejected.
+
+        ``block_trackers`` turns on the browser's built-in ad/tracker blocking
+        (EasyList + EasyPrivacy; anti-bot and captcha vendors are never
+        blocked) for the whole session. Default False.
+        ``block_trackers_exclude`` lists domains (e.g. ``["googletagmanager.com"]``)
+        that must never be blocked for this session, for sites whose
+        functionality rides on a tag manager.
+
         ``extensions`` ships Chrome extensions for the session to load at
         Chrome launch. Only honoured for ephemeral sessions — persistent
         sessions manage extensions via ``client.sessions.extensions.*`` so
@@ -210,6 +233,9 @@ class Sessions:
             isolated_world=isolated_world,
             headless=headless,
             block_images=block_images,
+            cache_pack=cache_pack,
+            block_trackers=block_trackers,
+            block_trackers_exclude=block_trackers_exclude,
             session_name=session_name,
             label=label,
             proxy=proxy,
@@ -438,6 +464,9 @@ class AsyncSessions:
         isolated_world: bool | None = None,
         headless: bool | None = None,
         block_images: bool = False,
+        cache_pack: str | None = None,
+        block_trackers: bool = False,
+        block_trackers_exclude: list[str] | None = None,
         session_name: str | None = None,
         label: str | None = None,
         proxy: str | ProxyConfig | None = None,
@@ -454,6 +483,9 @@ class AsyncSessions:
             isolated_world=isolated_world,
             headless=headless,
             block_images=block_images,
+            cache_pack=cache_pack,
+            block_trackers=block_trackers,
+            block_trackers_exclude=block_trackers_exclude,
             session_name=session_name,
             label=label,
             proxy=proxy,
