@@ -47,6 +47,18 @@ async def main():
 asyncio.run(main())
 ```
 
+### Viewport: don't override it
+
+Each session's window size comes from its persona. Overriding the viewport makes
+`innerWidth` disagree with `document.documentElement.clientWidth` and
+`matchMedia`, which sites can detect.
+
+- Use `browser.contexts[0]`. If you need a fresh context, use
+  `browser.new_context(no_viewport=True)`. A plain `new_context()` applies a
+  1280×720 viewport.
+- Avoid `page.set_viewport_size()` and `new_context(viewport={...})`. Both are
+  detectable on our browser.
+
 ### Lower-level `connect()` and `cdp_url()`
 
 If you want to manage the browser lifecycle yourself:

@@ -13,7 +13,10 @@ def main() -> None:
             browser = client.sessions.connect(
                 session["id"], auto_whitelist=True
             )
-            context = browser.contexts[0] if browser.contexts else browser.new_context()
+            # no_viewport keeps the persona's window size; a plain new_context() emulates 1280x720.
+            context = (
+                browser.contexts[0] if browser.contexts else browser.new_context(no_viewport=True)
+            )
             page = context.pages[0] if context.pages else context.new_page()
 
             page.goto("https://bot.sannysoft.com", wait_until="domcontentloaded")
