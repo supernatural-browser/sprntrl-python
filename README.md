@@ -89,10 +89,9 @@ url = client.sessions.cdp_url(session_id)
 - `proxy` — bring your own proxy as a URL string (`"socks5://user:pass@host:1080"`) or dict (`{"protocol": ..., "host": ..., "port": ..., "username": ..., "password": ...}`). HTTP/HTTPS/SOCKS5.
 - `extensions` — inline Chrome extensions for ephemeral sessions (see below).
 - `country` — ISO 3166-1 alpha-2 code (e.g. `"GB"`): any pool exit in that country, drawn at random. Use instead of `location` (the two are mutually exclusive). Ignored for BYO-proxy sessions.
-- `disable_geolocation` — default `False`. Opts out of the per-session position pin (by default the browser reports a position near the exit IP).
 
 ```python
-session = client.sessions.create(os="android", country="GB", disable_geolocation=True)
+session = client.sessions.create(os="android", country="GB")
 ```
 
 ### Locations

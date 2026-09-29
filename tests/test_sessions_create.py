@@ -20,7 +20,7 @@ class _AsyncStub(_SyncStub):
         return {}
 
 
-NEW_FIELDS = ("country", "disable_geolocation")
+NEW_FIELDS = ("country",)
 
 
 def _body(kwargs, *, use_async=False):
@@ -49,7 +49,6 @@ def test_new_fields_serialized(use_async):
         {
             "os": "android",
             "country": "GB",
-            "disable_geolocation": True,
         },
         use_async=use_async,
     )
@@ -57,7 +56,6 @@ def test_new_fields_serialized(use_async):
         "os": "android",
         "persistent": False,
         "country": "GB",
-        "disable_geolocation": True,
     }
     assert "location" not in body
 
