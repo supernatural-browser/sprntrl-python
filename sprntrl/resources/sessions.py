@@ -98,8 +98,6 @@ def _build_create_body(
     proxy: str | Mapping[str, Any] | None = None,
     extensions: list[ExtensionInlineSpec] | None = None,
     disable_geolocation: bool = False,
-    proxy_relay: bool | None = None,
-    fingerprint_overrides: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"os": os, "persistent": persistent}
     if location is not None:
@@ -130,10 +128,6 @@ def _build_create_body(
         body["extensions"] = ext_payload
     if disable_geolocation:
         body["disable_geolocation"] = True
-    if proxy_relay is not None:
-        body["proxy_relay"] = proxy_relay
-    if fingerprint_overrides is not None:
-        body["fingerprint_overrides"] = dict(fingerprint_overrides)
     return body
 
 
@@ -197,8 +191,6 @@ class Sessions:
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
         disable_geolocation: bool = False,
-        proxy_relay: bool | None = None,
-        fingerprint_overrides: Mapping[str, Any] | None = None,
     ) -> Session:
         """Create a stealth browser session.
 
@@ -250,15 +242,6 @@ class Sessions:
 
         ``disable_geolocation`` opts out of the per-session position pin
         (default False: the browser reports a position near the exit IP).
-
-        ``proxy_relay`` routes egress through the in-sidecar proxy relay,
-        enabling proxy liveness monitoring and live upstream swap. Feature
-        flag; default off. Only takes effect when the session has a proxy.
-
-        ``fingerprint_overrides`` replaces the server-generated fingerprint
-        ``overrides`` block for this session. Requires the admin-granted
-        ``fingerprint_edit`` capability; ephemeral sessions only; applied
-        verbatim without validation.
         """
         body = _build_create_body(
             os, location,
@@ -276,8 +259,6 @@ class Sessions:
             proxy=proxy,
             extensions=extensions,
             disable_geolocation=disable_geolocation,
-            proxy_relay=proxy_relay,
-            fingerprint_overrides=fingerprint_overrides,
         )
         return self._client._request("POST", "/api/v1/sessions", json=body)
 
@@ -511,8 +492,6 @@ class AsyncSessions:
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
         disable_geolocation: bool = False,
-        proxy_relay: bool | None = None,
-        fingerprint_overrides: Mapping[str, Any] | None = None,
     ) -> Session:
         """Create a stealth browser session.
 
@@ -534,8 +513,6 @@ class AsyncSessions:
             proxy=proxy,
             extensions=extensions,
             disable_geolocation=disable_geolocation,
-            proxy_relay=proxy_relay,
-            fingerprint_overrides=fingerprint_overrides,
         )
         return await self._client._request("POST", "/api/v1/sessions", json=body)
 

@@ -20,7 +20,7 @@ class _AsyncStub(_SyncStub):
         return {}
 
 
-NEW_FIELDS = ("country", "disable_geolocation", "proxy_relay", "fingerprint_overrides")
+NEW_FIELDS = ("country", "disable_geolocation")
 
 
 def _body(kwargs, *, use_async=False):
@@ -45,14 +45,11 @@ def test_new_fields_omitted_when_unset(use_async):
 
 @pytest.mark.parametrize("use_async", [False, True])
 def test_new_fields_serialized(use_async):
-    overrides = {"userAgent": "x", "screen": {"width": 412}}
     body = _body(
         {
             "os": "android",
             "country": "GB",
             "disable_geolocation": True,
-            "proxy_relay": True,
-            "fingerprint_overrides": overrides,
         },
         use_async=use_async,
     )
@@ -61,12 +58,6 @@ def test_new_fields_serialized(use_async):
         "persistent": False,
         "country": "GB",
         "disable_geolocation": True,
-        "proxy_relay": True,
-        "fingerprint_overrides": overrides,
     }
     assert "location" not in body
 
-
-def test_proxy_relay_false_is_sent_explicitly():
-    body = _body({"os": "windows", "location": "Europe/London", "proxy_relay": False})
-    assert body["proxy_relay"] is False
