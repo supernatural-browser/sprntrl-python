@@ -82,8 +82,9 @@ def _normalize_extensions(extensions: list[ExtensionInlineSpec] | None) -> list[
 
 def _build_create_body(
     os: OS,
-    location: str,
+    location: str | None = None,
     *,
+    country: str | None = None,
     persistent: bool = False,
     captcha_solver: bool = False,
     isolated_world: bool | None = None,
@@ -96,12 +97,15 @@ def _build_create_body(
     label: str | None = None,
     proxy: str | Mapping[str, Any] | None = None,
     extensions: list[ExtensionInlineSpec] | None = None,
+    disable_geolocation: bool = False,
+    proxy_relay: bool | None = None,
+    fingerprint_overrides: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    body: dict[str, Any] = {
-        "os": os,
-        "location": location,
-        "persistent": persistent,
-    }
+    body: dict[str, Any] = {"os": os, "persistent": persistent}
+    if location is not None:
+        body["location"] = location
+    if country is not None:
+        body["country"] = country
     if captcha_solver:
         body["captcha_solver"] = True
     if isolated_world is not None:
@@ -124,6 +128,12 @@ def _build_create_body(
     ext_payload = _normalize_extensions(extensions)
     if ext_payload:
         body["extensions"] = ext_payload
+    if disable_geolocation:
+        body["disable_geolocation"] = True
+    if proxy_relay is not None:
+        body["proxy_relay"] = proxy_relay
+    if fingerprint_overrides is not None:
+        body["fingerprint_overrides"] = dict(fingerprint_overrides)
     return body
 
 
@@ -171,8 +181,9 @@ class Sessions:
     def create(
         self,
         os: OS,
-        location: str,
+        location: str | None = None,
         *,
+        country: str | None = None,
         persistent: bool = False,
         captcha_solver: bool = False,
         isolated_world: bool | None = None,
@@ -185,8 +196,19 @@ class Sessions:
         label: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
+        disable_geolocation: bool = False,
+        proxy_relay: bool | None = None,
+        fingerprint_overrides: Mapping[str, Any] | None = None,
     ) -> Session:
         """Create a stealth browser session.
+
+        ``os`` is the persona family: ``"macos"``, ``"windows"`` or ``"android"``.
+
+        ``location`` names an exact pool zone (an IANA timezone from
+        ``list_locations()``). ``country`` (ISO 3166-1 alpha-2, e.g. ``"GB"``)
+        is the coarse alternative: any active pool exit in that country, drawn
+        at random. The two are mutually exclusive — pass one, not both.
+        ``country`` is ignored for BYO-proxy sessions.
 
         ``label`` pins the proxy-pool match to a specific pool row at the
         chosen ``location`` (one of the labels from ``list_locations()``,
@@ -225,9 +247,22 @@ class Sessions:
         the set survives stop/resume cycles. Each spec sets exactly one of
         ``upload_b64`` (base64 ZIP/CRX bytes), ``webstore_url`` (Chrome
         Web Store URL or ID), or ``crx_url`` (direct HTTPS URL to a .crx).
+
+        ``disable_geolocation`` opts out of the per-session position pin
+        (default False: the browser reports a position near the exit IP).
+
+        ``proxy_relay`` routes egress through the in-sidecar proxy relay,
+        enabling proxy liveness monitoring and live upstream swap. Feature
+        flag; default off. Only takes effect when the session has a proxy.
+
+        ``fingerprint_overrides`` replaces the server-generated fingerprint
+        ``overrides`` block for this session. Requires the admin-granted
+        ``fingerprint_edit`` capability; ephemeral sessions only; applied
+        verbatim without validation.
         """
         body = _build_create_body(
             os, location,
+            country=country,
             persistent=persistent,
             captcha_solver=captcha_solver,
             isolated_world=isolated_world,
@@ -240,6 +275,9 @@ class Sessions:
             label=label,
             proxy=proxy,
             extensions=extensions,
+            disable_geolocation=disable_geolocation,
+            proxy_relay=proxy_relay,
+            fingerprint_overrides=fingerprint_overrides,
         )
         return self._client._request("POST", "/api/v1/sessions", json=body)
 
@@ -457,8 +495,9 @@ class AsyncSessions:
     async def create(
         self,
         os: OS,
-        location: str,
+        location: str | None = None,
         *,
+        country: str | None = None,
         persistent: bool = False,
         captcha_solver: bool = False,
         isolated_world: bool | None = None,
@@ -471,6 +510,9 @@ class AsyncSessions:
         label: str | None = None,
         proxy: str | ProxyConfig | None = None,
         extensions: list[ExtensionInlineSpec] | None = None,
+        disable_geolocation: bool = False,
+        proxy_relay: bool | None = None,
+        fingerprint_overrides: Mapping[str, Any] | None = None,
     ) -> Session:
         """Create a stealth browser session.
 
@@ -478,6 +520,7 @@ class AsyncSessions:
         """
         body = _build_create_body(
             os, location,
+            country=country,
             persistent=persistent,
             captcha_solver=captcha_solver,
             isolated_world=isolated_world,
@@ -490,6 +533,9 @@ class AsyncSessions:
             label=label,
             proxy=proxy,
             extensions=extensions,
+            disable_geolocation=disable_geolocation,
+            proxy_relay=proxy_relay,
+            fingerprint_overrides=fingerprint_overrides,
         )
         return await self._client._request("POST", "/api/v1/sessions", json=body)
 

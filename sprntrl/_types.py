@@ -5,7 +5,7 @@ from typing import Any, Literal, TypedDict
 
 ProxyProtocol = Literal["HTTP", "HTTPS", "SOCKS5"]
 SessionStatus = Literal["creating", "running", "stopping", "stopped", "failed", "archiving"]
-OS = Literal["macos", "windows"]
+OS = Literal["macos", "windows", "android"]
 
 
 class ProxyConfig(TypedDict, total=False):

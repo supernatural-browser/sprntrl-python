@@ -78,7 +78,7 @@ url = client.sessions.cdp_url(session_id)
 
 ## Session options
 
-`sessions.create(os, location, ...)` takes `os` (`"macos"` | `"windows"`) and `location` (IANA timezone), plus:
+`sessions.create(os, location, ...)` takes `os` (`"macos"` | `"windows"` | `"android"`) and `location` (IANA timezone), plus:
 
 - `persistent` + `session_name` — keep the browser profile across stop/resume (see below).
 - `captcha_solver` — auto-solves hCaptcha, Turnstile, reCAPTCHA and more; billed per solve.
@@ -88,6 +88,14 @@ url = client.sessions.cdp_url(session_id)
 - `label` — pins the proxy-pool match to a specific pool row at `location` (one of the labels from `list_locations()`, e.g. `"Kentucky, US"`). Ignored for BYO-proxy sessions.
 - `proxy` — bring your own proxy as a URL string (`"socks5://user:pass@host:1080"`) or dict (`{"protocol": ..., "host": ..., "port": ..., "username": ..., "password": ...}`). HTTP/HTTPS/SOCKS5.
 - `extensions` — inline Chrome extensions for ephemeral sessions (see below).
+- `country` — ISO 3166-1 alpha-2 code (e.g. `"GB"`): any pool exit in that country, drawn at random. Use instead of `location` (the two are mutually exclusive). Ignored for BYO-proxy sessions.
+- `disable_geolocation` — default `False`. Opts out of the per-session position pin (by default the browser reports a position near the exit IP).
+- `proxy_relay` — default off. Routes egress through the in-sidecar proxy relay (proxy liveness monitoring + live upstream swap). Feature flag.
+- `fingerprint_overrides` — dict that replaces the generated fingerprint `overrides` block. Ephemeral sessions only; needs the admin-granted `fingerprint_edit` capability; applied verbatim.
+
+```python
+session = client.sessions.create(os="android", country="GB", disable_geolocation=True)
+```
 
 ### Locations
 

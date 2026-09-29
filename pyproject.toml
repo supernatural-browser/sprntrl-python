@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sprntrl"
-version = "0.1.5"
+dynamic = ["version"]
 description = "Supernatural Python SDK — stealth browser-as-a-service client."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -43,6 +43,10 @@ Homepage = "https://supernatural.sh"
 Repository = "https://github.com/supernatural-browser/sprntrl-python"
 Documentation = "https://app.supernatural.sh/docs"
 "Bug Tracker" = "https://github.com/supernatural-browser/sprntrl-python/issues"
+
+[tool.hatch.version]
+# Single source of truth: sprntrl/_version.py (also feeds __version__ + User-Agent).
+path = "sprntrl/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sprntrl"]
